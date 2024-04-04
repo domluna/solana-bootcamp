@@ -1,7 +1,6 @@
-use borsh::{BorshDeserialize, BorshSerialize};
+use borsh::{try_from_slice_unchecked, BorshDeserialize, BorshSerialize};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
-    borsh::try_from_slice_unchecked,
     msg,
     program::invoke_signed,
     program_error::ProgramError,

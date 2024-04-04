@@ -1,14 +1,15 @@
 [package]
 name = "pda"
 version = "0.1.0"
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-borsh = "0.9.1"
-bytemuck = "1.7.2"
-solana-program = "1.7.9"
+borsh = "1.4.0"
+bytemuck = "1.15.0"
+solana-program = "=1.18.9"
 
 [lib]
 crate-type = ["cdylib", "lib"]
+
