@@ -1,2 +1,4 @@
 fizzbuzz/target/*
-test_ledger
+test-ledger
+playground/**/test-ledger
+playground/**/target
