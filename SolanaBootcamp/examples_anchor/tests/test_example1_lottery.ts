@@ -246,11 +246,14 @@ describe("Tests for example1-lottery", async () => {
     expect(lotteryState.winnerIndex).to.equal(winnerIndex);
   });
 
-  it("Winner withdraws funds", async () => {
+  it("Winner withdraws 90% funds", async () => {
     // Get winners starting balance
     let startBalance: number = await provider.connection.getBalance(
       player2.publicKey
     );
+
+    // Get lottery balance
+    let lotteryState = await provider.connection.getBalance(lottery.publicKey);
 
     // Get winner idx
     let winnerIdx: number = (
@@ -277,8 +280,61 @@ describe("Tests for example1-lottery", async () => {
       .signers([])
       .rpc();
 
+    let newLotteryBalance = lotteryState * 0.1;
+    lotteryState = await provider.connection.getBalance(lottery.publicKey);
+    expect(lotteryState).to.be.equal(newLotteryBalance);
+
     // Assert winner got the payout
     let endBalanace = await provider.connection.getBalance(player2.publicKey);
     expect(endBalanace).to.be.greaterThan(startBalance);
+
+    try {
+      // Try to payout winner again
+      await program.methods
+        .payOutWinner()
+        .accounts({
+          ticket: ticket,
+          lottery: lottery.publicKey,
+          winner: player2.publicKey,
+        })
+        .signers([])
+        .rpc();
+      assert(false, "Payout should not have succeeded");
+    } catch (err) {
+      const errMsg =
+        "AnchorError caused by account: lottery. Error Code: ConstraintRaw. Error Number: 2003. Error Message: A raw constraint was violated.";
+      assert.equal(err.toString(), errMsg);
+    }
+  });
+
+  it("Admin takes the rest", async () => {
+    // Get winners starting balance
+    let startBalance: number = await provider.connection.getBalance(
+      lottery_admin.publicKey
+    );
+
+    // Get lottery balance
+    let lotteryState = await provider.connection.getBalance(lottery.publicKey);
+    expect(lotteryState).to.be.greaterThan(0);
+
+    // Get lottery ticket
+    await program.methods
+      .grabLottery()
+      .accounts({
+        lottery: lottery.publicKey,
+        admin: lottery_admin.publicKey,
+      })
+      .signers([])
+      .rpc();
+
+    let newLotteryBalance = 0;
+    lotteryState = await provider.connection.getBalance(lottery.publicKey);
+    expect(lotteryState).to.be.equal(newLotteryBalance);
+
+    // Assert winner got the payout
+    let endBalance = await provider.connection.getBalance(
+      lottery_admin.publicKey
+    );
+    expect(endBalance).to.be.greaterThan(startBalance);
   });
 });

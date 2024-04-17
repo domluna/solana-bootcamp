@@ -74,9 +74,28 @@ mod example1 {
 
         // Get total money stored under original lottery account
         let balance: u64 = lottery.to_account_info().lamports();                      
+        let payout: u64 = (balance as f64 * 0.9) as u64;
+            
+        **lottery.to_account_info().try_borrow_mut_lamports()? -= payout;
+        **recipient.to_account_info().try_borrow_mut_lamports()? += payout; 
+        lottery.completed = true;
+        
+        Ok(())
+    }
+
+    pub fn grab_lottery(ctx: Context<WithdrawFunds>) -> Result<()> {
+
+        // Check if it matches the winner address
+        let lottery: &mut Account<Lottery> = &mut ctx.accounts.lottery;
+        let admin: &mut AccountInfo =  &mut ctx.accounts.admin;        
+
+        // require the lottery authority to withdraw funds if the payout already happened
+
+        // Get total money stored under original lottery account
+        let balance: u64 = lottery.to_account_info().lamports();                      
             
         **lottery.to_account_info().try_borrow_mut_lamports()? -= balance;
-        **recipient.to_account_info().try_borrow_mut_lamports()? += balance; 
+        **admin.to_account_info().try_borrow_mut_lamports()? += balance; 
         
         Ok(())
     }
@@ -126,7 +145,8 @@ pub struct Payout<'info> {
     #[account(mut, 
         constraint = 
         ticket.submitter == *winner.key && 
-        ticket.idx == lottery.winner_index        
+        ticket.idx == lottery.winner_index &&
+        !lottery.completed
     )]       
     pub lottery: Account<'info, Lottery>,          // To assert winner and withdraw lamports
     #[account(mut)]       
@@ -136,6 +156,17 @@ pub struct Payout<'info> {
     pub ticket: Account<'info, Ticket>,            // Winning PDA
 }
 
+#[derive(Accounts)]
+pub struct WithdrawFunds<'info> {             
+    #[account(mut, 
+        constraint = 
+        lottery.authority == *admin.key && lottery.completed
+    )]       
+    pub lottery: Account<'info, Lottery>,          // To assert winner and withdraw lamports
+    /// CHECK: Not dangerous as it only receives lamports
+    #[account(mut)]                  
+    pub admin: AccountInfo<'info>,                // Winner account
+}
 
 // Accounts
 ////////////////////////////////////////////////////////////////
@@ -149,6 +180,7 @@ pub struct Lottery {
     pub winner_index: u32, 
     pub count: u32,
     pub ticket_price: u64,
+    pub completed: bool,
 }
 
 // Ticket PDA
